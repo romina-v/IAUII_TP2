@@ -1,0 +1,19 @@
+---
+title: "IAUII_TP2"
+author: "Romina Violante"
+date: "2023-09-17"
+output: html_document
+---
+## Trabajo Práctico n°2: 
+
+Para comenzar este TP, se creo un nuevo repositorio público en Github con el nombre " IAUII_TP2". Luego se creo un nuevo proyecto con el nombre "IAUII_TP2" en versión de control para que quede sincronizado con el repositorio creado previamente.
+
+Tras abrir un R Markdown, comienzo con los puntos pedidos en la consigna.
+Primero activo mi librería de tidyverse.
+
+```{r}
+library(tidyverse)
+```
+
+Descargo un archivo de CSV desde el portal de datos abiertos de la ciudad de Buenos Aires (https://data.buenosaires.gob.ar/dataset) y elijo un archivo relacionado a ........
+Una vez que tengo mi dataset copiado en la carpeta del proyecto, puedo leerlo utilizando el siguiente chunk:

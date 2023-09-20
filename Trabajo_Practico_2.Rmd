@@ -15,5 +15,217 @@ Primero activo mi librería de tidyverse.
 library(tidyverse)
 ```
 
-Descargo un archivo de CSV desde el portal de datos abiertos de la ciudad de Buenos Aires (https://data.buenosaires.gob.ar/dataset) y elijo un archivo relacionado a ........
+Para la elaboración de este trabajo decidí continuar con los datos del TP n°1 por lo que repetiré los pasos realizados en el TP anterior y completaré el mismo con las visualizaciones de datos pedidas.
+
+Descargo un archivo de CSV desde el portal de datos abiertos de la ciudad de Buenos Aires (https://data.buenosaires.gob.ar/dataset) y elijo un archivo relacionado a los permisos de uso en el espacio público para calesitas.
 Una vez que tengo mi dataset copiado en la carpeta del proyecto, puedo leerlo utilizando el siguiente chunk:
+
+```{r}
+base <- read.csv("data/permisos_calesitas.csv",
+                 stringsAsFactors = TRUE,
+                 encoding = "UTF-8")
+```
+
+```{r}
+data<-read.csv("data/permisos_calesitas.csv", header=T, sep=";", dec=".")
+
+```
+Al leerlo, agrego un chunck que me muestre algunas de sus características:
+
+```{r}
+dim (base)
+```
+Usando la función dim, descubro que tengo 42 filas y 1 sola columna. Entonces abro la tabla y descubro que no me está separando correctamente las columnas del dataset. Lo corrijo de la siguiente manera:
+
+
+
+La nueva tabla data me muestra la información correctamente. Verifico esto mediante un nuevo dim:
+
+```{r}
+dim(data)
+
+```
+Ahora puedo ver que mi tabla tiene 42 ingresos y 18 columnas.
+
+Para conocer un poco más de información sobre su contenido usaré summary()
+
+```{r}
+summary(data)
+```
+Allí puedo ver:
+- Varias columnas vacías como: long, lat, codigo_postal,codigo_postal_argentino, x, x.1
+- tres años con permisos para calesitas: 2018, 2022 y 2023
+- la mayoría de los registros son variables del tipo character
+
+En base a la información encontrada, la pregunta planteada será, ¿cuál es la comuna con mayor cantidad de permisos otorgados en el año 2022(según año de expediente)?
+
+Para responder esta pregunta primero se deberán acomodar algunas cosas en la tabla obtenida.
+
+Se eliminarán las columnas que están vacías y que no nos aportan información alguna.
+
+```{r}
+Tabla_limpia <- select(data, -long, -lat, -codigo_postal, -codigo_postal_argentino)
+```
+
+Con un head() se podrá verificar que quedan únicamente las columnas deseadas
+
+```{r}
+head(Tabla_limpia)
+```
+
+Ahora, será necesario filtrar las filas por año de expediente.
+
+```{r}
+Tabla_filtrada <- filter(Tabla_limpia, anio_expediente=="2022"& tipo_permiso=="OTORGADO")
+```
+
+Una vez que tengo mi tabla filtrada, tendré que ajustar el tipo de variable para poder entender a la comuna como una categoría, de este modo, podré visualizar en un summary cual es la comuna que más se repite por pedidos de permiso.
+Entonces, con un mutate, cambio el tipo de variable de la siguiente manera:
+
+```{r}
+Tabla_modificada <- mutate(Tabla_filtrada,comuna=as.factor(comuna))
+```
+Y luego, con un summary ya puedo visualizar mi resultado.
+
+```{r}
+summary(Tabla_modificada)
+```
+
+La respuesta a la pregunta planteada será que la comuna 11 y la 13 serán las comunas con mayor cantidad de permisos otorgados en el año 2022, tomando como filtro el año de expediente en el que se inició el pedido.
+
+Continuando con las consignas del TP2 y para poder ver la respuesta del tp1 de forma gráfica, incorporaré a mi tabla datos georeferenciasdos, que en este caso, serán los datos de las comunas mencionadas en la tabla.
+
+Como primer paso activaré las librerías necesarias para esta parte del trabajo:
+
+```{r}
+library(ggplot2)
+library (sf)
+```
+
+A continuación, cargaré el dataset de las comunas:
+
+```{r}
+comunas<-st_read("data/comunas_wgs84.shp",
+                 stringsAsFactors =TRUE,
+                 options ="ENCODING=UTF-8")
+```
+
+Con un head verifico la información con la que cuento en este dataset:
+
+```{r}
+head (comunas)
+```
+Me encuentro con los siguientes títulos:
+- ID
+- OBJETO
+- COMUNAS
+- BARRIOS
+- PERIMETRO
+- AREA
+- GEOMETRIA
+
+
+Para poder armar mi gráfico deberé unir ambas tablas (la que venía trabajando y la que tiene la información de comunas) y para ellos deberé ordenar la información de forma que tenga dos columnas iguales que sean el vínculo para su unificación.En mi caso, las uniré por la columna comunas. De esta manera empiezo con la tabla que ya venía utilizando de los permisos de calesitas. En ella filtraré por comuna los permisos pedidos:
+
+```{r}
+Resumen_permisos_calesitas <- Tabla_modificada %>% group_by(comuna) %>% summarise(anio_expediente=n()) 
+```
+
+Para que la columna por la que uniré las tablas tenga en mismo nombre en ambos archivos, y por una cuestión de orden visual, modificaré los títulos en esta tabla. Voy a reemplazar "anio_expediente" por "cant_permisos_2022" y "comuna" por "COMUNAS" que es como figura el título en mi otro dataset.
+
+```{r}
+Resumen_permisos_calesitas <- rename(Resumen_permisos_calesitas,  cant_permisos_2022=anio_expediente, COMUNAS=comuna)
+```
+
+Verifico contar con la información correcta:
+```{r}
+head (Resumen_permisos_calesitas)
+```
+
+Ahora, ordenaré mi dataset de comunas. Nuevamente voy a filtrar el mismo para quedarme unicamente con la columna comunas, las comunas que me figuran en mi objeto de resumen_permisos_calesitas y con la columna que contiene la geometría.
+
+```{r}
+Resumen_comunas <- select (comunas,COMUNAS,geometry) %>% filter (COMUNAS!="3")
+```
+
+Además, voy a trasformar la columna COMUNAS en Factor para que sea compatible con la columna COMUNAS de mi otra tabla:
+```{r}
+Resumen_comunas <- mutate(Resumen_comunas, COMUNAS=as.factor(COMUNAS))
+```
+
+Ya teniendo la información ordenada, uniré las tablas:
+
+```{r}
+Tabla_grafico <- left_join (Resumen_permisos_calesitas, Resumen_comunas, by="COMUNAS")
+```
+
+Ahora, podré desarrollar uno de mis gráficos que me indica la respuesta del TP anterior, en este caso, un gráfico de barras:
+
+```{r}
+ggplot(Tabla_grafico, aes(x = COMUNAS, y = cant_permisos_2022)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Cantidad de Permisos por Comunas", x = "Comunas", y = "Permisos") +
+  theme_minimal()
+```
+
+
+Para poder realizar mi segundo gráfico, que será un mapa coroplético asociado a la geometría de las comunas, le cambiaré el fomato a la tabla:
+
+```{r}
+Tabla_grafico <- st_as_sf(Tabla_grafico)
+```
+
+Por último, generó mi mapa de permisos por comuna con el siguiente chunk:
+
+```{r}
+ggplot(Tabla_grafico) +
+  geom_sf(aes(fill = cant_permisos_2022)) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "Cantidad de Permisos por Comunas", fill = "Permisos") +
+  theme_minimal()
+
+```
+En este gráfico puedo observar las comunas con la mayor cantidad de permisos en rojo y con la menor cantidad de permisos en azul.
+
+Incorporaré un último gráfico facetado sobre la cantidad de permisos pedidos en los barrios que componen cada una de las comunas.
+
+En primer lugar, tomo los datos que necesitaré para el gráfico de mi tabla_modificada ya que necesitaré sumar algunos datos nuevos, los de barrios:
+
+
+```{r}
+permisos_barrios <- select(Tabla_modificada,comuna,barrio)
+  
+```
+
+Agrego la columna que contendrá la cantidad de permisos para calesitas:
+
+```{r}
+permisos_barrios2 <- permisos_barrios %>% 
+  group_by(barrio, comuna) %>% 
+  summarise(permisos = n())
+```
+
+Por último, confecciono mi gráfico:
+
+```{r}
+ggplot(permisos_barrios2) +
+  geom_bar(aes(x = barrio, weight = permisos, fill = barrio), width = 0.5) +
+  labs(
+    title = "Total de permisos por barrio según comuna",
+    x = "Barrios",
+    y = "Permisos"
+  ) +
+  facet_wrap(~comuna, scales = "free_x") +
+  theme(
+    legend.position = 'none',
+    axis.text.x = element_text(colour = "gray25", size = 6),
+    axis.text.y = element_text(colour = "gray25", size = 6)
+  ) +
+  scale_y_continuous(
+    labels = scales::comma, 
+    breaks = scales::pretty_breaks(n = 2))
+
+
+```
+
+En el, puedo observar los barrios que componen cada comuna y cuantos permisos fueron pedidos en cada barrio.

@@ -142,7 +142,7 @@ Verifico contar con la información correcta:
 head (Resumen_permisos_calesitas)
 ```
 
-Ahora, ordenaré mi dataset de comunas. Nuevamente voy a filtrar el mismo para quedarme unicamente con la columna comunas, las comunas que me figuran en mi objeto de resumen_permisos_calesitas y con la columna que contiene la geometría.
+Ahora, ordenaré mi dataset de comunas. Nuevamente voy a filtrar el mismo para quedarme únicamente con la columna comunas, las comunas que me figuran en mi objeto de resumen_permisos_calesitas y con la columna que contiene la geometría.Al mirar el archivo que contiene los permisos, pude observar que hay una de las comunas que no tiene ningún permiso pedido, la comuna 3. Y, por lo tanto, la retiraré de mi tabla donde tengo las geometría, ya que necesito la misma cantidad de datos en ambas tablas para poder unirlas.
 
 ```{r}
 Resumen_comunas <- select (comunas,COMUNAS,geometry) %>% filter (COMUNAS!="3")
